@@ -25,7 +25,6 @@ campsiteRouter.route('/')
         res.json(campsite);
     })
     .catch(err => next(err));
-    
 })
 .put((req, res) => {
     res.statusCode = 403;
