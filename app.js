@@ -4,6 +4,8 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const mongoose = require('mongoose');
+const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
@@ -25,12 +27,22 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser('12345-67890-09876-54321'));
+//app.use(cookieParser('12345-67890-09876-54321'));
+
+//create our session object
+app.use(session({
+  name: 'session-id',
+  secret: '12345-67890-09876-54321',
+  saveUninitialized: false, //When a new session is created but then no updates are made to it then at the end of the request it won't get saved because it will be an empty session
+  resave: false,  //Once a session has been created and saved it will continue to be resave whenver a request has been made for that session even if there are no updates
+  store: new FileStore()  //Create a new file store object so we can save our session to the server hard disk
+}));
 
 //Using authentication before serving our static files. We are creating our own function
 //to handle authentication
 function auth(req, res, next) {
-  if(!req.signedCookies.user) { //If cookie not properly signed then it will return a value of false. Therefore, user must be authenticated.
+  console.log(req.session);  //req sends a property called session so we want to see this information. This is more for development and learning purposes and not really necessary.
+  if(!req.session.user) { //If cookie not properly signed then it will return a value of false. Therefore, user must be authenticated.
     const authHeader = req.headers.authorization;//Grab the auth header out of the request header
     if(!authHeader) { //if no authentication information then user access is denied. Create an error message and return that message
       const err = new Error('You are not authenticated!');
@@ -48,7 +60,7 @@ function auth(req, res, next) {
     if(user === 'admin' && pass === 'password') {
       //Setup a new cookie with the user name as admin and set signed to true thus user is authorized. We let express know that 
       //we will use the secret key in cookie parser to create a signed key
-      res.cookie('user', 'admin', {signed: true});
+      req.session.user = 'admin';
       return next(); //user is authorized
     }else {
       const err = new Error('You are not authenticated!');
@@ -59,7 +71,8 @@ function auth(req, res, next) {
   }else {
     //If there is a signed cookie value in the incoming request, check if it is admin
     //If so then pass the client on to the next middleware function
-    if(req.signedCookies.user === 'admin') {
+    if(req.session.user === 'admin') {
+      console.log('req.session:', req.session);
       return next();
     }else {
       //Otherwise send an error message with no challenge to authenticate
