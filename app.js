@@ -38,40 +38,24 @@ app.use(session({
   store: new FileStore()  //Create a new file store object so we can save our session to the server hard disk
 }));
 
+//We want users to create a login if they haven't done so with the users route and give logged out users  
+//and unauthenticated users access to the index page. This is why we put these endpoints here before authentication.  
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
 //Using authentication before serving our static files. We are creating our own function
 //to handle authentication
 function auth(req, res, next) {
   console.log(req.session);  //req sends a property called session so we want to see this information. This is more for development and learning purposes and not really necessary.
+
   if(!req.session.user) { //If cookie not properly signed then it will return a value of false. Therefore, user must be authenticated.
-    const authHeader = req.headers.authorization;//Grab the auth header out of the request header
-    if(!authHeader) { //if no authentication information then user access is denied. Create an error message and return that message
       const err = new Error('You are not authenticated!');
-      res.setHeader('WWW-Authenticate', 'Basic');////This lets the client know that the server is requesting authentication
       err.status = 401;//Standard error code for no credentials provided
       return next(err);//Handle error message by sending it back to express to handle and send a new request for credentials
-    }
-  
-    //when an authorization header is provided the string is decoded and parsed into username:password format
-    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-    const user = auth[0];//contains the username
-    const pass = auth[1];//contains the password
-    
-    //Basic check for correct username and password
-    if(user === 'admin' && pass === 'password') {
-      //Setup a new cookie with the user name as admin and set signed to true thus user is authorized. We let express know that 
-      //we will use the secret key in cookie parser to create a signed key
-      req.session.user = 'admin';
-      return next(); //user is authorized
-    }else {
-      const err = new Error('You are not authenticated!');
-      res.setHeader('WWW-Authenticate', 'Basic');
-      err.status = 401;
-      return next(err);
-    }
   }else {
     //If there is a signed cookie value in the incoming request, check if it is admin
     //If so then pass the client on to the next middleware function
-    if(req.session.user === 'admin') {
+    if(req.session.user === 'authenticated') {
       console.log('req.session:', req.session);
       return next();
     }else {
@@ -89,8 +73,7 @@ app.use(auth);//incorportate our function to authenticate
 app.use(express.static(path.join(__dirname, 'public')));
 
 //Define our endpoints to navigate to for our app. 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+
 app.use('/campsites', campsiteRouter);
 app.use('/promotions', promotionRouter);
 app.use('/partners', partnerRouter);
