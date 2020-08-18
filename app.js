@@ -1,11 +1,13 @@
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
+const passport = require('passport');
+const authenticate = require('./authenticate');
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
@@ -38,6 +40,10 @@ app.use(session({
   store: new FileStore()  //Create a new file store object so we can save our session to the server hard disk
 }));
 
+//These are only needed if we are using session based authentication
+app.use(passport.initialize());
+app.use(passport.session());
+
 //We want users to create a login if they haven't done so with the users route and give logged out users  
 //and unauthenticated users access to the index page. This is why we put these endpoints here before authentication.  
 app.use('/', indexRouter);
@@ -46,26 +52,17 @@ app.use('/users', usersRouter);
 //Using authentication before serving our static files. We are creating our own function
 //to handle authentication
 function auth(req, res, next) {
-  console.log(req.session);  //req sends a property called session so we want to see this information. This is more for development and learning purposes and not really necessary.
+  console.log(req.user);  //req sends a property called session so we want to see this information. This is more for development and learning purposes and not really necessary.
 
-  if(!req.session.user) { //If cookie not properly signed then it will return a value of false. Therefore, user must be authenticated.
+  if(!req.user) { //If cookie not properly signed then it will return a value of false. Therefore, user must be authenticated.
       const err = new Error('You are not authenticated!');
       err.status = 401;//Standard error code for no credentials provided
       return next(err);//Handle error message by sending it back to express to handle and send a new request for credentials
   }else {
-    //If there is a signed cookie value in the incoming request, check if it is admin
-    //If so then pass the client on to the next middleware function
-    if(req.session.user === 'authenticated') {
-      console.log('req.session:', req.session);
       return next();
-    }else {
-      //Otherwise send an error message with no challenge to authenticate
-      const err = new Error('You are not authenticated!');
-      err.status = 401;
-      return next(err);
-    }
   }
 }
+
 
 app.use(auth);//incorportate our function to authenticate
 
