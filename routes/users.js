@@ -6,10 +6,17 @@ const authenticate = require('../authenticate');
 const router = express.Router();
 
 // Get users listing
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, function(req, res, next) {
+  User.find()
+  .then(users => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.json(users);
+  })
+  .catch(err => next(err));
 });
 
+//Sign the user up. We will throw an error if credentials already exist or incorrect sign up requirements
 router.post('/signup', (req, res) => {
   User.register(
     new User({username: req.body.username}),
@@ -45,6 +52,7 @@ router.post('/signup', (req, res) => {
   );
 });
 
+//log the user in 
 router.post('/login', passport.authenticate('local'), (req, res) => {
   const token = authenticate.getToken({_id: req.user._id});
   res.statusCode = 200;
@@ -52,6 +60,7 @@ router.post('/login', passport.authenticate('local'), (req, res) => {
   res.json({success: true, token: token, status: 'You are successfully logged in!'});
 });
 
+//log the user out and redirect to the landing page or throw an error 
 router.get('/logout', (req, res, next) => {
   if(req.session) {
     req.session.destroy(); //kill the session
