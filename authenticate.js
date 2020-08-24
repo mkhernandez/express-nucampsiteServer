@@ -39,6 +39,7 @@ exports.jwtPassport = passport.use(
 
 exports.verifyUser = passport.authenticate('jwt', {session: false});
 
+//Method to verify if the user has admin privileges
 exports.verifyAdmin = ((req, res, next) => {
     if(req.user.admin) {
         return next();
