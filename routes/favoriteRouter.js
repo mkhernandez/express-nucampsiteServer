@@ -29,18 +29,18 @@ favoriteRouter.route('/')
              req.body.forEach(fav => {
                 if(!favorite.campsites.includes(fav._id)) { //If campsite not in the favorite array then push into favorite array
                     favorite.campsites.push(fav._id);
+                    favorite.save()
+                    .then(favorite => {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(favorite);
+                    });
                 }
                 else { //campsite in the favorite array
                     const err = new Error('The campsite already exists in the favorite array!');
                     err.status = 403;
                     return next(err);
                 }
-            });
-            favorite.save()
-            .then(favorite => {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json(favorite);
             });
         }else{ //create a favorite document if no favorites are in array and insert the campsite into the array
             Favorite.create({user: req.user._id, campsites: req.body})
