@@ -219,11 +219,6 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
             }
         })
         .catch(err => next(err));
-    // else {
-    //     const err = new Error('You are not authorized!');
-    //     err.status = 403;
-    //     return next(err);
-    // }
     
 })
 .delete(cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
